@@ -16,16 +16,7 @@ void loop()
 {  
    if (irrecv.decode(&results))
    {
-      switch(results.value){
-        case RED_KEY: 
-        Serial.println("RED_KEY");
-        break;
-        default:
-        Serial.println("NO_IDENTIFICADO");
-      }
-      
-      //Serial.println(results.value, HEX);
-      
+      Serial.println(results.value, HEX);    
       irrecv.resume();
    }
 }
