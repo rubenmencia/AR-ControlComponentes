@@ -100,7 +100,7 @@ void loop()
          Serial.println("KEY_9");
          break;
       case KEY_REPEAT:
-         //Serial.println("KEY_REPEAT");
+         //Serial.println("KEY_REPEAT"); //Comentada para evitar salida en pulsaciones largas
          break;
       }
       irrecv.resume();
