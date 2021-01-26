@@ -1,4 +1,4 @@
-  /* ENFRIADOR DE LÍQUIDOS*/
+/* ENFRIADOR DE LÍQUIDOS*/
 // Include the library:
 #include <TM1637Display.h>
 #include <IRremote.h>
@@ -8,6 +8,7 @@
 // Define the connections pins:
 #define CLK 8
 #define DIO 7
+#define CON_PUNTOS 0B10000000
 
 const int pinReciever = 2;
 const int pinRele = 3;
@@ -18,9 +19,10 @@ int maxT_prog = 31;
 int minT_prog = 20;
 int maxT_reg = 0;
 int minT_reg = 0;
+int secondsT = 5;
 int secondsCold = 15;
 
-enum mode {probe,insertMaxProg,insertMinProg,readMaxProg,readMinProg,readMaxReg,readMinReg,insertSeconds,readSeconds}; 
+enum mode {probe,maxProg,minProg,maxReg,minReg,seco}; 
 mode modo;
 
 bool screen = true;
@@ -62,6 +64,11 @@ const uint8_t all[] = {0xff, 0xff, 0xff, 0xff};
 
 // Create array that turns all segments off:
 const uint8_t blank[] = {0x00, 0x00, 0x00, 0x00};
+
+
+const uint8_t inicio[]{
+  SEG_G , SEG_G , SEG_G , SEG_G  // ----
+};
 
 const uint8_t tempProbe[] = {
   SEG_D | SEG_E | SEG_F | SEG_G,           // t
@@ -110,6 +117,11 @@ const uint8_t celsius[] = {
   SEG_A | SEG_D | SEG_E | SEG_F   // C
 };
 
+const uint8_t c[] = {
+  0x00,0x00,0x00,
+  SEG_A | SEG_D | SEG_E | SEG_F   // C
+};
+
 // You can set the individual segments per digit to spell words or create other symbols:
 const uint8_t done[] = {
   SEG_B | SEG_C | SEG_D | SEG_E | SEG_G,           // d
@@ -124,8 +136,9 @@ DallasTemperature sensors(&ourWire); //Se declara una variable u objeto para nue
 void setup() {
   // Clear the display:
   display.clear();
-  delay(1000);
-
+  screenOn();
+  display.setSegments(inicio);
+  
   Serial.begin(9600);
   irrecv.enableIRIn();
   pinMode(pinRele , OUTPUT);   
@@ -167,37 +180,30 @@ void escucha(){
          break;
       case KEY_DARKBLUE:
          Serial.println("KEY_DARKBLUE"); 
+
+         openWater(secondsCold);
          break;
       case KEY_YELLOW:
          Serial.println("KEY_YELLOW");  
 
          switch(modo){
             case probe:
-              getTemp_probe();
+              getTemp_probe(secondsT);
               break;
-            case readMaxReg:
+            case maxReg:
               getMaxT_reg();
               break;    
-            case readMinReg:
+            case minReg:
               getMinT_reg();
               break;                        
-            case readMaxProg:
+            case maxProg:
               getMaxT_prog();
               break;
-            case insertMaxProg:
-              
-              break;  
-            case readMinProg:
+            case minProg:
               getMinT_prog();
               break;
-            case insertMinProg:
-              
-              break;  
-            case readSeconds:
+            case seco:
               getSecondsCold();
-              break;            
-            case insertSeconds:
-              
               break;            
           }
          break;
@@ -216,56 +222,98 @@ void escucha(){
          switch(modo){
             case probe:
               display.setSegments(tempMaxReg);
-              modo = readMaxReg;
+              modo = maxReg;
               break;
-            case readMaxReg:
+            case maxReg:
               display.setSegments(tempMinReg);
-              modo = readMinReg;
+              modo = minReg;
               break;    
-            case readMinReg:
+            case minReg:
               display.setSegments(tempMaxProg);
-              modo = readMaxProg;
+              modo = maxProg;
               break;                        
-            case readMaxProg:
+            case maxProg:
               display.setSegments(tempMinProg);
-              modo = readMinProg;
+              modo = minProg;
               break;
-            case insertMaxProg:
-              display.setSegments(tempMinProg);
-              modo = readMinProg;
-              break;  
-            case readMinProg:
+            case minProg:
               display.setSegments(sec);
-              modo = readSeconds;
-              break;
-            case insertMinProg:
-              display.setSegments(sec);
-              modo = readSeconds;
-              break;  
-            case readSeconds:
+              modo = seco;
+              break; 
+            case seco:
               display.setSegments(tempProbe);
               modo = probe;
-              break;            
-            case insertSeconds:
-              display.setSegments(tempProbe);
-              modo = probe;
-              break;            
+              break;                        
           }
          
          break;
       case KEY_UP:
-         Serial.println("KEY_UP");      
-         cont++;
-         display.setBrightness(7);
-         display.showNumberDec(cont);
+         Serial.println("KEY_UP");
+
+         switch(modo){
+            case probe:
+              
+              break;
+            case maxReg:
+             
+              break;    
+            case minReg:
+             
+              break;                        
+            case maxProg:
+               maxT_prog++;
+               display.setBrightness(7);
+               display.showNumberDec(maxT_prog,false,4,0);
+              break;
+            case minProg:
+              minT_prog++;
+              display.setBrightness(7);
+              display.showNumberDec(minT_prog,false,4,0);
+              break;
+            case seco:
+              secondsCold++;
+              display.setBrightness(7);
+              display.showNumberDec(secondsCold,false,4,0);
+              break;            
+          }
          break;
+        
       case KEY_DOWN:
          Serial.println("KEY_DOWN");
-         if(cont > 0){        
-         cont--;
-         display.setBrightness(7);
-         display.showNumberDec(cont);
-         }
+
+          switch(modo){
+            case probe:
+              
+              break;
+            case maxReg:
+             
+              break;    
+            case minReg:
+             
+              break;                        
+            case maxProg:
+               if(maxT_prog > 9){ 
+                 maxT_prog--;
+                 display.setBrightness(7);
+                 display.showNumberDec(maxT_prog,false,4,0);
+               }
+              break;
+            case minProg:
+               if(minT_prog > 9){ 
+                 minT_prog--;
+                 display.setBrightness(7);
+                 display.showNumberDec(minT_prog,false,4,0);
+               }
+              break;
+            case seco:
+              if(secondsCold > 0){ 
+                secondsCold--;
+                display.setBrightness(7);
+                display.showNumberDec(secondsCold,false,4,0);
+              }
+              break;            
+          }
+
          break;
       case KEY_1:
          Serial.println("KEY_1");
@@ -380,7 +428,6 @@ void screenOn(){
 
   screen = true;
   display.setBrightness(7);
-  display.showNumberDec(0);
   }
 
 void screenOff(){
@@ -390,27 +437,26 @@ void screenOff(){
   display.setSegments(blank);
   }
 
-void getTemp_probe(){
+void getTemp_probe(int retardo){
  
     sensors.requestTemperatures();   //Se envía el comando para leer la temperatura
     float temp = sensors.getTempCByIndex(0); //Se obtiene la temperatura en ºC
 
     maxT_reg = temp;
     minT_reg = temp;
-    
-    if (screen){
-            display.clear();
-            display.showNumberDec(temp,false,2,0);
-          //display.showNumberDecEx(temp*100, 0b11100000, false, 2, 0);
-          }
-          
+
     Serial.print("Temperatura= ");
     Serial.print(temp);
     Serial.println(" C");    
-    
+
+    if (screen){
+
+      decimal2screen(temp);
+      }
+            
     while(1){
 
-      if(millis() % 5000 == 0){
+      if(millis() % (secondsT * 1000) == 0){
           sensors.requestTemperatures();   //Se envía el comando para leer la temperatura
           temp = sensors.getTempCByIndex(0); //Se obtiene la temperatura en ºC
 
@@ -425,16 +471,13 @@ void getTemp_probe(){
             }
       
           if (screen){
-            display.clear();
-            display.showNumberDec(temp,false,2,0);
-          //display.showNumberDecEx(temp*100, 0b11100000, false, 2, 0);
-          }
+
+            decimal2screen(temp);
+            }
       
         Serial.print("Temperatura= ");
         Serial.print(temp);
         Serial.println(" C");
-    
-        Serial.println(millis());
 
         if(temp >= maxT_prog){
 
@@ -446,36 +489,36 @@ void getTemp_probe(){
         {
           switch (results.value)
           {
-          case KEY_WHITE:          
-            Serial.println("KEY_WHITE");
-            screenOn();
-          return;
-          break;
-          }
+           case KEY_ON:
+             Serial.println("KEY_ON");
+             screenOn();
+             decimal2screen(temp);
+             break;
+           case KEY_OFF:
+             Serial.println("KEY_OFF");
+             screenOff();
+             break;
+           case KEY_WHITE:          
+              Serial.println("KEY_WHITE");
+              screenOn();
+              return;
+            break;
+            }
         irrecv.resume();
-        }
-      
+        }     
     }
   }
   
-void setMaxT_prog(){
-  
-  }
-
 void getMaxT_prog(){
 
   display.clear();
-  display.showNumberDec(maxT_prog,false,2,0);
-  }
-
-void setMinT_prog(){
-
+  display.showNumberDec(maxT_prog,false,4,0);
   }
 
 void getMinT_prog(){
 
   display.clear();
-  display.showNumberDec(minT_prog,false,2,0);
+  display.showNumberDec(minT_prog,false,4,0);
   }
 
 void getMaxT_reg(){
@@ -490,14 +533,10 @@ void getMinT_reg(){
   display.showNumberDec(minT_reg);
   }
 
-void setSecondsCold(){
-  
-  }
-
 void getSecondsCold(){
 
   display.clear();
-  display.showNumberDec(secondsCold,false,2,0);
+  display.showNumberDec(secondsCold,false,4,0);
   }
 
 void openWater(int sec){
@@ -516,9 +555,30 @@ void openWater(int sec){
 
     if(modo = probe){
       
-      getTemp_probe();
+      getTemp_probe(secondsT);
       }
 
+  }
+
+void decimal2screen(float j){
+
+    j = j *10;
+    int i = (int) j;
+
+    display.clear();
+
+    if (i/10 >= 9){
+      display.showNumberDec(i/100,false,1,0);
+      display.showNumberDec((i/10)%10,false,1,1);
+      display.showNumberDec(i%10,false,1,2);
+      }
+    else{
+
+      display.showNumberDec(i/10,false,1,0);
+      display.showNumberDec(i % 10,false,1,1);
+      }
+
+    //display.showNumberDecEx(temp*100, 0b11100000, false, 2, 0);
   }
   
 
